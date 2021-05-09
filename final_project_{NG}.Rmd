@@ -1,0 +1,311 @@
+---
+title: "A study on the correlation between non-performing loans and interest rates"
+author: "Jason Ng"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    number_sections: yes
+  word_document: default
+header-includes: \usepackage{setspace}\doublespacing
+geometry: margin=1in
+---
+
+###### __Introduction__
+
+  For the project, I have decided to use the loan performance dataset from the Federal Deposit Insurance Corporation. The entire dataset is arranged in a crosstab format with years from 1984Q1 to 2020Q4 on the columns and the variables on the rows. All of the data are quantitative and continuous with exception of the variables themselves and cells with the values marked as “NA”. The variables themselves are subdivided into further categories. Of which, all of them relate some way or form to housing or construction. The variables themselves are stated as follows:
+
++ 30-89 days past due
++ 90 days or more past due
++ In nonaccrual status
++ Total outstanding
++ 30-89 day past due rate
++ Noncurrent rate
++ Total charge-offs
++ Total recoveries
++ Net charge-offs
++ Average outstanding
++ Net charge-off rate
+
+Thus, the primary research question for this investigation is as follows: Is there a relationship between a decrease in relative number of non-performing loans and a decrease in non-concurrent interest on the total number of real estate loans over time?
+
+
+###### Literature Review
+
+Definitions:
+
++ Non-Performing Loan (NPL): A loan in which the borrower is in default and has not paid back either the principal or interest after 30 days.
+
++ Non-current rate: The average interest rate of all loans for that specific time period.
+
+According to traditional neo-classical economics (Investopedia), there should be a decrease in the total number of non-performing loans (NPLs) whenever there is a decrease in interest rates either set by the central bank (in this instance, the central bank for the United States is the Federal Reserve) or by the bank itself (Saba, Kouser and Azeem, 2012). The reason why this happens is simple. Whenever the interest rates on new loans are low or decreased, there is an increased interest in the number of borrowers who may seek a loan from the bank. This increase in the number of borrowers should also increase the total number of less creditworthy individuals seeking a loan or increase the total number of indebted individuals to the bank (Kashyap, Stein and Wilcox, 1993). In the context of the investigation, the same basic theory applies. Whenever the interest rate (the noncurrent rate) on loans increases, the total number of non-performing loans should increase as well. It should be noted that a side effect of increasing interest rates should be increased inflation as there is more money circulating in the economy, and economic growth (Bank of England). 
+
+On the contrary, more modern analysis indicate that the relationship is not so simple. Bahruddin and Masih (2018) argue that the relationship between interest rates and non-performing loans is more asymmetric in the short term but turn symmetric in the long term. This is significant as it, to an extent, disproves the theoretical logic of the traditional view above. If interest rates increase, then surely the amount of non-performing loans should increase as well? Bahruddin and co, argue in their paper that the total number of non-performing loans increases regardless of whatever during short-term economic downturns. To which, the authors of the paper note can be addressed more to external factors such as unemployment rather than concrete policy.
+
+This investigation will be conducted by creating a graph of NPLs over Interest Rate that is then fitted with a polynomial non-linear regression curve in order to ascertain a more accurate predictor of the explanatory variable for every increase in the response variable compared to traditional linear regression model. This non-linear polynomial regression curve will be modeled using a machine learning program under the caret library and is calibrated up to x to the power 4.
+
+###### __Initial Hypotheses:__
+
+H0 : There is no relationship between Non-Performing Loans and non-concurrent interest rate on loans
+
++ Despite the theoretical background of a relationship between interest rates and loan growth, there is no such correlation in reality. This could be primarily up to the fact that it is the banks that determine who gets a loan and whether or not he is creditworthy.
+
+HA1 : There is a positive relationship between Non-Performing Loans and non-concurrent interest rates
+
++ There is a correlation between interest rates and the total number of non-performing loans. The rationale is that higher interest rates on loans ensures that financially unstable borrowers are less likely to repay their loans back. Thus ensuring that the loan becomes non-performing. This is the most likely scenario due to an abundance of literature and academic research.
+
+HA2 : There is a negative relationship between Non-Performing Loans and interest rates
+
++ Strangely enough, this could happen. The reason is that banks are more tempted out to loan to riskier borrowers whenever interest rates are decreased. The reason is that lower interest rates reduce the effective income of banks whenever they lend out money. To compensate for this, they just loan out more money to ensure their base profit margins are met. 
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+
+data <- read_csv(file = "C:/Users/Jason/Documents/Stat402/loan-performance.csv")
+
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Reverses rows and columns
+
+data <- read_csv(file = "C:/Users/Jason/Documents/Stat402/loan-performance.csv")
+library(TSstudio)
+
+frame <- data
+
+# Remember columns
+n <- frame$X1
+
+# Transpose all but the first column
+
+frame <- as.data.frame(t(frame[,-1]))
+colnames(frame) <- n
+frame$myfactor <- factor(row.names(frame))
+
+colnames(frame)[2] <- "Total_Sum_of_NPLs"
+
+frame2 <- frame[2]
+
+frame2 <- tibble::rowid_to_column(frame2, "Date")
+
+```
+
+
+
+
+
+###### __Exploratory Data Analysis and Data Driven Hypotheses__
+
+Figature 1: A time graph analysis of the total number of NPLs over time
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width="85%", fig.align="center"}
+library(tidyverse)
+
+data <- read_csv(file = "C:/Users/Jason/Documents/Stat402/loan-performance.csv")
+library(TSstudio)
+
+frame <- data
+
+# Remember columns
+n <- frame$X1
+
+# Transpose all but the first column
+
+frame <- as.data.frame(t(frame[,-1]))
+colnames(frame) <- n
+frame$myfactor <- factor(row.names(frame))
+
+colnames(frame)[2] <- "Total_Sum_of_NPLs"
+
+frame2 <- frame[2]
+
+frame2 <- tibble::rowid_to_column(frame2, "Date")
+
+frame2$Total_Sum_of_NPLs <- as.numeric(gsub(",","",frame2$Total_Sum_of_NPLs))
+
+h <- ggplot(frame2, aes(x = Date, y = Total_Sum_of_NPLs)) + geom_line()
+h + ylab("Total Sum of NPLs") + xlab("Financial Quarters since 1984Q3") + scale_x_continuous(limits=c(0, 150), breaks=seq(0, 150, 10))
+```
+
+Figature 2: A time graph of the Interest Rate over time
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width="85%", fig.align="center"}
+
+library(tidyverse)
+
+data <- read_csv(file = "C:/Users/Jason/Documents/Stat402/loan-performance.csv")
+library(TSstudio)
+
+frame <- data
+
+# Remember columns
+n <- frame$X1
+
+# Transpose all but the first column
+
+frame <- as.data.frame(t(frame[,-1]))
+colnames(frame) <- n
+frame$myfactor <- factor(row.names(frame))
+
+frame3 <- frame[7]
+
+colnames(frame3)[1] <- "Interest_Rate"
+
+frame3 <- frame3 %>%
+  mutate(Interest_Rate = as.numeric(gsub("%", "", Interest_Rate)))
+
+frame3 <- tibble::rowid_to_column(frame3, "Date")
+
+g <- ggplot(frame3, aes(x = Date, y = Interest_Rate)) + geom_line()
+g + ylab("Interest Rate (%)") + xlab("Financial Quarters since 1984Q3") + scale_x_continuous(limits=c(0, 150), breaks=seq(0, 150, 10))
+
+```
+
+Do the hypotheses need to be changed according to the data? Unlikely, but no. The reason is that the hypotheses stated previously above have shown themselves to be still relevant when dealing with the current data. This is even more apparent when just looking at the graphs themselves and seeing the peaks at both ends of the depression. The question is no longer what the hypothesis is, but on what exactly is going on and how to explain it.
+
+As you can see from both the graphs, there is a spike in both the interest rates and NPLs during the 100th quarter since 1984Q3. This is equivalent to the year 2008-2010, which just so happens to be time period where both the financial crash of 2007-2008 and the Great Recession of 2009 occured. What is interesting to note is the limited effect of the interest rate below 2% during the 30th to the 90th quarter, in which the total number of NPLs does not decrease much if not all during the time period. To an extent proving the traditional neoclassical viewpoint of decreasing interest rates to reduce total NPLs as incorrect. Conversely, this is also evidence to back up the theory of the liquidity trap first proposed by John Maynard Keynes in 1936, which states that when interest rates fall below a certain percentage, the effect of it on altering supply and demand vanished to 0 (Keynes, 1936). This should be completely evident, as the peaks on both correspond to each other indicating some form of correlation between one and another.
+
+__Modeling__
+\newline
+Figature 3: A graph plotting Total Sum of NPLs over Interest Rate
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width="85%", fig.align="center"}
+library(tidyverse)
+library(ggplot2)
+library(caret)
+data <- read_csv(file = "C:/Users/Jason/Documents/Stat402/loan-performance.csv")
+
+frame <- data
+
+# Remember columns
+n <- frame$X1
+
+# Transpose all but the first column
+
+frame <- as.data.frame(t(frame[,-1]))
+colnames(frame) <- n
+frame$myfactor <- factor(row.names(frame))
+
+frame3 <- frame[7]
+
+colnames(frame3)[1] <- "Interest_Rate"
+
+frame3 <- frame3 %>%
+  mutate(Interest_Rate = as.numeric(gsub("%", "", Interest_Rate)))
+
+frame3 <- tibble::rowid_to_column(frame3, "Date")
+
+colnames(frame)[2] <- "Total_Sum_of_NPLs"
+
+frame2 <- frame[2]
+
+frame2 <- tibble::rowid_to_column(frame2, "Date")
+
+frame2$Total_Sum_of_NPLs <- as.numeric(gsub(",","",frame2$Total_Sum_of_NPLs))
+
+total <- merge(frame2, frame3, by="Date")
+
+ggplot(total, aes(x = Interest_Rate, y = Total_Sum_of_NPLs)) + geom_point() + xlab("Interest Rate") + ylab("Total Sum of NPLs")
+
+```
+
+Figature 4: A fitted graph using a polynomial regression equation and an output of values
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width="85%", fig.align="center"}
+# Split data into training and test set
+
+set.seed(123)
+training.samples2 <- total$Total_Sum_of_NPLs %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data <- total[training.samples2, ]
+test.data <- total[-training.samples2, ]
+
+# Build the model (Polynomial)
+model  <- lm(Total_Sum_of_NPLs ~ poly(Date, 4, raw = TRUE), data = train.data)
+
+#Make predictions
+predictions <- model %>% predict(test.data)
+
+ggplot(train.data, aes(Interest_Rate, Total_Sum_of_NPLs)) + geom_point() + stat_smooth(method = lm, formula = y ~ poly(x, 4, raw = TRUE)) + xlab("Interest Rate") + ylab("Total Sum of NPLs")
+
+model %>%
+  summary()
+
+```
+
+
+Figure 4 Statistics:
+
+Polynomial Regression Equation:
+
+y = 285.9 + 2114x - 70.16x^2^ + 0.9161x^3^ - 0.003686x^4^
+\newline
+P-Value : 0.000
+\newline
+Adjusted R^2^: 0.6045
+
+Overall, the polynomial non-linear regression curve worked better than expected. An adjusted R^2^ value of 0.6045 is accurate enough to ascertain that there is a moderate to moderately strong correlation between an increase in interest rates and an increase in the total number of non-performing loans. This is also further bostered by the fact that the P-value is far less than 0.05 and by default disproves the null hypothesis and indicates statistical significance. This however only proves that the 1st alternative hypothesis to be correct as the graph does not indicate a negative relationship between NPLs and interest rates. However, what is notable about this finding is that is doesn't completely prove that the traditional neo-classical and mainstream economic theory that decreasing interest rates should increase economic activity is correct. This is primarily through a proof of the liquidity trap as stated above in a discussion about John Maynard Keynes as his discovery back in the 1930s. This discovery should especially not be surprising when looking into the work provided by Bahruddin and Masih (2018) when they studied this exact same trend when looking at figures published during the 1997 Asian Financial Crisis. It should also be noted that this outcome also supports the work done by Borio and Gambacorta (2017) on the effect of monetary policy and bank lending in low interest environments. In which it provides evidence to substantiate a claim detailing how monetary policy is less effective at stimulating lending growth when reaching a very low level. This finding helped to bolster that claim as the total number of NPLs do not decrease much or any further when reaching 0, indicating the diminishing effect of decreasing interests the lower they get. 
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+__Discussion__
+
+Whilst the outcome has proven that there is a correlation between NPLs and interest rates, it should be notes why it is like this way. Previously in the hypotheses section, the 1st alternative hypothesis mentioned that "There is a correlation between interest rates and the total number of non-performing loans. The rationale is that higher interest rates on loans ensures that financially unstable borrowers are less likely to repay their loans back. Thus ensuring that the loan becomes non-performing. This is the most likely scenario due to an abundance of literature and academic research"; however some extra theoretical additions are needed in order to make the theory more comprehensive. For one, while higher interest rates lead to much greater NPLs, the same cannot be said when looking in reverse. Despite lower interest rates leading to less NPLs in total, it can only decrease to a point where it becomes less efficient and ineffective to be effective at enforcing monetary policy. This is even more evident when looking at how the vast majority of central banks have pushed near 0 interest rates for many years -- possibly decades. As such, more theoretical research is needed on breaking out of this cycle of low-interest rates, nothing happening and experts being perplexed by a situation. Policymakers especially need to be more aware of this scenario and what can be done to escape it. 
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+__List of Works Cited__
+
+“What Are Interest Rates?” Bank of England, September 21, 2020. \newline
+    https://www.bankofengland.co.uk/knowledgebank/what-are-interest-rates. \newline 
+    
+Bahruddin, Wan Athirah, and Mansur Masih. “Is the Relation between Lending Interest Rate and \newline
+    Non-Performing Loans Symmetric or Asymmetric ? Evidence from ARDL and NARDL.” Munich Personal RePEc \newline
+    Archive, December 31, 2018. \newline
+    
+Borio, Claudio, and Leonardo Gambacorta. “Monetary Policy and Bank Lending in a Low Interest Rate \newline
+    Environment: Diminishing Effectiveness?” Journal of Macroeconomics 54 (December 2017): 217–31. \newline
+    https://doi.org/10.1016/j.jmacro.2017.02.005. \newline
+    
+Canady, Dr. Tisa Silver. “How Interest Rate Cuts Affect Consumers.” Investopedia. Investopedia, April  \newline
+    30, 2021. https://www.investopedia.com/articles/economics/08/interest-rate-affecting-consumers.asp   \newline
+    
+Kashyap, Anil, Jeremy Stein, and David Wilcox. “Monetary Policy and Credit Conditions: Evidence From theComposition of External Finance.” The American Economic Review 83, no. 1 (March 1993): 78–98.     \newline
+    https://doi.org/10.3386/w4015. \newline
+    
+Keynes, John Maynard. The General Theory of Employment, Interest, and Money. London, United Kingdom: Palgrave Macmillan, 1936. \newline
+
+Saba, Irum, Rehana Kouser, and Muhammad Azeem. “Determinants of Non Performing Loans: Case of US Banking Sector.” The Romanian Economic Journal 15, no. 44 (June 2012): 141–52. \newline
